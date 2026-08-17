@@ -25,6 +25,14 @@ const CURRENT_KEY = 'current'
 interface PlanRecord {
   plan: unknown
   savedAt: string
+  /**
+   * Whether this plan had been exported to a file when it was last stored.
+   *
+   * Kept across sessions because it is the difference between "your work is in
+   * a file somewhere" and "your work exists only here". Without it, reopening
+   * the app would silently treat a never-exported plan as safe.
+   */
+  exported?: boolean
 }
 
 interface RoomPlannerDb extends DBSchema {
@@ -62,6 +70,8 @@ export interface StoredPlan {
   plan: Plan
   savedAt: Date
   warnings: string[]
+  /** False for anything written before this was recorded — the safer assumption. */
+  exported: boolean
 }
 
 export async function loadAutosave(): Promise<StoredPlan | null> {
@@ -70,19 +80,28 @@ export async function loadAutosave(): Promise<StoredPlan | null> {
     const record = await (await db()).get(STORE, CURRENT_KEY)
     if (!record) return null
     const { plan, warnings } = parsePlan(record.plan)
-    return { plan, savedAt: new Date(record.savedAt), warnings }
+    return {
+      plan,
+      savedAt: new Date(record.savedAt),
+      warnings,
+      exported: record.exported === true,
+    }
   } catch {
     // A corrupt or unreadable autosave should never stop the app from opening.
     return null
   }
 }
 
-export async function saveAutosave(plan: Plan): Promise<boolean> {
+export async function saveAutosave(plan: Plan, exported = false): Promise<boolean> {
   if (!storageAvailable()) return false
   try {
     await (await db()).put(
       STORE,
-      { plan: JSON.parse(JSON.stringify(plan)), savedAt: new Date().toISOString() },
+      {
+        plan: JSON.parse(JSON.stringify(plan)),
+        savedAt: new Date().toISOString(),
+        exported,
+      },
       CURRENT_KEY,
     )
     return true

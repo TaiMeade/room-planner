@@ -46,6 +46,29 @@ export function useCanvasInteraction(surface: () => SVGSVGElement | null) {
 
   const drag = shallowRef<Drag>({ kind: 'none' })
   const marquee = ref<{ from: Point; to: Point } | null>(null)
+
+  /**
+   * Whether this interaction has an open gesture on the plan store.
+   *
+   * The two calls have to be matched exactly. An unclosed gesture makes every
+   * later command merge into the same undo step — forever, silently — and the
+   * way in was pressing the right button in the middle of a left-drag, which
+   * bails out down a path that used to skip the close.
+   */
+  let gestureOpen = false
+
+  function openGesture(): void {
+    if (gestureOpen) return
+    gestureOpen = true
+    planStore.beginGesture()
+  }
+
+  function closeGesture(): void {
+    if (!gestureOpen) return
+    gestureOpen = false
+    planStore.endGesture()
+  }
+
   /** Set on pointerdown, cleared once movement exceeds the threshold. */
   const pressOrigin = ref<Point | null>(null)
   const movedSincePress = ref(false)
@@ -175,7 +198,7 @@ export function useCanvasInteraction(surface: () => SVGSVGElement | null) {
         startAngle: Math.atan2(world.y - item.y, world.x - item.x),
       }
       editor.isDragging = true
-      planStore.beginGesture()
+      openGesture()
       return
     }
 
@@ -211,7 +234,7 @@ export function useCanvasInteraction(surface: () => SVGSVGElement | null) {
     }
 
     editor.isDragging = true
-    planStore.beginGesture()
+    openGesture()
   }
 
   /** Rotation grips are drawn by the overlay; this recomputes where they are. */
@@ -424,6 +447,9 @@ export function useCanvasInteraction(surface: () => SVGSVGElement | null) {
       drag.value = { kind: 'none' }
       editor.isPanning = false
       editor.isDragging = false
+      // Right-clicking part-way through a left-drag lands here, so this has to
+      // close any gesture that drag opened.
+      closeGesture()
       pressOrigin.value = null
       return
     }
@@ -472,7 +498,7 @@ export function useCanvasInteraction(surface: () => SVGSVGElement | null) {
 
     editor.isPanning = false
     editor.isDragging = false
-    planStore.endGesture()
+    closeGesture()
     pressOrigin.value = null
   }
 
@@ -521,7 +547,7 @@ export function useCanvasInteraction(surface: () => SVGSVGElement | null) {
     editor.measurement = null
     marquee.value = null
     drag.value = { kind: 'none' }
-    planStore.endGesture()
+    closeGesture()
   }
 
   // --- wheel & keys ---------------------------------------------------------

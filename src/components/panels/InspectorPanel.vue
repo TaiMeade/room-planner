@@ -2,6 +2,7 @@
 import { mdiDelete, mdiFlipHorizontal, mdiLock, mdiLockOpenVariant, mdiSwapHorizontal } from '@mdi/js'
 import { computed } from 'vue'
 
+import AngleField from '@/components/inputs/AngleField.vue'
 import LengthField from '@/components/inputs/LengthField.vue'
 import { moveNodes, updateFurniture, updateOpening, updateWall } from '@/lib/commands'
 import { deleteSelection } from '@/lib/edits'
@@ -397,12 +398,7 @@ const itemCount = computed(() => Object.keys(planStore.plan.furniture).length)
             :min="10"
             @update:model-value="setWallLength"
           />
-          <v-text-field
-            :model-value="wallAngle.toFixed(1)"
-            label="Angle°"
-            class="numeric"
-            @update:model-value="setWallAngle(Number($event) || 0)"
-          />
+          <AngleField :model-value="wallAngle" label="Angle°" @update:model-value="setWallAngle" />
         </div>
         <div class="pair mt-2">
           <LengthField
@@ -535,12 +531,7 @@ const itemCount = computed(() => Object.keys(planStore.plan.furniture).length)
             :min="10"
             @update:model-value="patchItem({ height: Math.max(10, $event) }, 'resize item')"
           />
-          <v-text-field
-            :model-value="String(itemRotation)"
-            label="Rotation°"
-            class="numeric"
-            @update:model-value="itemRotation = Number($event) || 0"
-          />
+          <AngleField v-model="itemRotation" label="Rotation°" />
         </div>
 
         <div class="actions mt-2">

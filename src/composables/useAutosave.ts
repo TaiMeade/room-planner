@@ -32,7 +32,7 @@ export function useAutosave() {
     if (timer !== null) window.clearTimeout(timer)
     timer = window.setTimeout(async () => {
       timer = null
-      const ok = await saveAutosave(planStore.plan)
+      const ok = await saveAutosave(planStore.plan, !hasUnexportedWork.value)
       failed.value = !ok
       if (ok) lastSavedAt.value = new Date()
     }, DEBOUNCE_MS)
@@ -58,7 +58,11 @@ export function useAutosave() {
     restoredFrom.value = stored.savedAt
     lastSavedAt.value = stored.savedAt
     exportedRevision.value = planStore.revision
-    hasUnexportedWork.value = false
+    // Work carried over from a previous session is only safe if that session
+    // got it into a file. Assuming it did would hide the download prompt from
+    // exactly the person who most needs it — someone whose only copy is a
+    // browser database they haven't thought about.
+    hasUnexportedWork.value = !stored.exported
     return { restored: true, warnings: stored.warnings }
   }
 

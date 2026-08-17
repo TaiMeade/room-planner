@@ -1,0 +1,65 @@
+name: Build and deploy
+
+# Pages must be set to "GitHub Actions" as its source (Settings → Pages) for
+# the deploy job to have anywhere to publish to.
+on:
+  push:
+    branches: [master, main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Let a running deploy finish rather than cancelling it half-published, but
+# don't queue up more than one pending run behind it.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Test and build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Test
+        run: npm test
+
+      # `npm run build` runs vue-tsc first, so a type error fails here too.
+      - name: Build
+        run: npm run build
+        env:
+          # Project sites live at /<repo>/. Taken from the repository rather
+          # than hard-coded so renaming it doesn't quietly break the deploy.
+          PAGES_BASE: /${{ github.event.repository.name }}/
+
+      - name: Upload site
+        # Pull requests are built to prove they compile, not published.
+        if: github.event_name != 'pull_request'
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+  deploy:
+    name: Deploy to Pages
+    needs: build
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/master'
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

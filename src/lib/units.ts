@@ -47,11 +47,14 @@ export function formatLength(mm: number, units: UnitSystem, options: FormatOptio
 
   if (units === 'metric') {
     if (Math.abs(mm) >= 1000) return `${(mm / 1000).toFixed(2)} m`
-    return `${Math.round(mm)} mm`
+    // `|| 0` collapses -0 to 0, which stringifies without the sign.
+    return `${Math.round(mm) || 0} mm`
   }
 
-  const negative = mm < 0
   const totalInches = roundToFraction(mmToInches(Math.abs(mm)), precision)
+  // Only negative once rounding has had its say. A value a hair below zero
+  // rounds to nothing, and "-0" is not a measurement anyone wants to read.
+  const negative = mm < 0 && totalInches > 0
   const feet = Math.floor(totalInches / 12)
   let inches = totalInches - feet * 12
 

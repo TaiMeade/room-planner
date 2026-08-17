@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { OrbitControls } from '@tresjs/cientos'
 import { TresCanvas } from '@tresjs/core'
-import { computed, onBeforeUnmount, ref, shallowRef, watch } from 'vue'
+import { computed, nextTick, onBeforeUnmount, ref, shallowRef, watch } from 'vue'
 import { Vector3 } from 'three'
 import type { PerspectiveCamera } from 'three'
 
@@ -38,8 +38,12 @@ const built = shallowRef<BuiltScene | null>(null)
 watch(
   model,
   (next) => {
-    built.value?.dispose()
+    // Build and swap first, release afterwards. Disposing the outgoing group up
+    // front frees GPU buffers the scene graph is still pointing at, and any
+    // frame drawn in that gap renders from freed memory.
+    const previous = built.value
     built.value = buildSceneGroup(next)
+    if (previous) void nextTick(() => previous.dispose())
   },
   { immediate: true },
 )

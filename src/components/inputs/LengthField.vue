@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+import { computed, nextTick, ref, watch } from 'vue'
 
 import { formatLength, parseLength } from '@/lib/units'
 import { usePlanStore } from '@/stores/plan'
@@ -70,7 +70,13 @@ function commit(): void {
 
   invalid.value = false
   emit('update:modelValue', value)
-  draft.value = formatLength(value, planStore.units)
+  // Show what the plan ended up with, not what was asked for. Callers clamp
+  // further than this field can know about — an opening slid past the end of
+  // its wall comes back somewhere else entirely — and on Enter there is no
+  // blur to resync it later.
+  void nextTick(() => {
+    draft.value = display.value
+  })
 }
 
 function onFocus(event: FocusEvent): void {

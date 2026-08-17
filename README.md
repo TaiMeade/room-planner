@@ -8,7 +8,7 @@ file you own.
 ```
 npm install
 npm run dev        # http://localhost:5173
-npm test           # 152 unit tests
+npm test           # 170 unit tests
 npm run build      # typecheck + production build
 ```
 
@@ -52,7 +52,7 @@ ruler — see [Print scale](#print-scale).
 
 | | |
 | --- | --- |
-| `V` `W` `R` `D` `M` | Select · Wall · Room · Door/window · Measure |
+| `V` `H` `W` `R` `D` `M` | Select · Pan · Wall · Room · Door/window · Measure |
 | `Ctrl+Z` / `Ctrl+Shift+Z` | Undo / redo |
 | `Ctrl+S` | Export JSON |
 | `Ctrl+E` | Open the export dialog |
@@ -62,7 +62,7 @@ ruler — see [Print scale](#print-scale).
 | Arrows | Nudge one grid step (`Shift` for a fine nudge) |
 | `F` | Fit the plan on screen |
 | `Alt` (hold) | Bypass snapping |
-| `Space` + drag, or middle-drag | Pan |
+| Right-drag, `Space` + drag, or middle-drag | Pan, from any tool |
 | `2` / `3` | 2D drawing / 3D walkthrough |
 | `Esc` | End the current wall run, or clear the selection |
 
@@ -199,6 +199,19 @@ use it.
 **Not done**: collision. Walking through a wall is a mild oddity; a camera jammed in a
 doorway is a bug report, and solving it properly means a collision pass over geometry that
 exists to be looked at.
+
+## Deploying
+
+Pushing to `master` runs `.github/workflows/deploy.yml`: install, test, typecheck-and-build,
+publish to GitHub Pages. Pull requests build without publishing.
+
+GitHub Pages serves a project site from `/<repo>/`, so the build needs a matching `base` or
+the deployed page loads blank with 404s for every asset. The workflow passes it as
+`PAGES_BASE`, taken from the repository name rather than hard-coded — rename the repo and
+the deploy follows. For a user site (`you.github.io`) or a custom domain, drop the env var
+and the default root applies.
+
+Repository settings → Pages → Source must be set to **GitHub Actions**.
 
 ## Attribution
 

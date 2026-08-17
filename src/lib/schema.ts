@@ -46,6 +46,11 @@ function bool(value: unknown, fallback: boolean): boolean {
   return typeof value === 'boolean' ? value : fallback
 }
 
+/** An image embedded in the file itself, rather than a reference to somewhere else. */
+function isEmbeddedImage(value: string): boolean {
+  return /^data:image\/(png|jpeg|jpg|gif|webp|avif|bmp);base64,[A-Za-z0-9+/=\s]+$/i.test(value)
+}
+
 /** Warnings are surfaced to the user rather than swallowed — a silently thinned plan is worse than a noisy one. */
 export interface ParseResult {
   plan: Plan
@@ -196,20 +201,33 @@ export function parsePlan(input: unknown): ParseResult {
   plan.furnitureOrder = order
 
   // --- underlay -------------------------------------------------------------
+  //
+  // The underlay is the one field that becomes a URL the browser will fetch,
+  // and a plan file is something people pass around. Anything but an embedded
+  // image is refused: a remote `https://` underlay would have this app quietly
+  // making a network request the moment a shared file was opened, which is
+  // exactly the promise it makes to never do.
   if (isRecord(input.underlay) && typeof input.underlay.dataUrl === 'string') {
     const raw = input.underlay
-    const underlay: Underlay = {
-      dataUrl: raw.dataUrl as string,
-      x: num(raw.x, 0),
-      y: num(raw.y, 0),
-      width: positive(raw.width, 5000),
-      height: positive(raw.height, 4000),
-      rotation: num(raw.rotation, 0),
-      opacity: Math.min(1, Math.max(0, num(raw.opacity, 0.5))),
-      locked: bool(raw.locked, true),
-      visible: bool(raw.visible, true),
+    const dataUrl = String(raw.dataUrl)
+    if (isEmbeddedImage(dataUrl)) {
+      const underlay: Underlay = {
+        dataUrl,
+        x: num(raw.x, 0),
+        y: num(raw.y, 0),
+        width: positive(raw.width, 5000),
+        height: positive(raw.height, 4000),
+        rotation: num(raw.rotation, 0),
+        opacity: Math.min(1, Math.max(0, num(raw.opacity, 0.5))),
+        locked: bool(raw.locked, true),
+        visible: bool(raw.visible, true),
+      }
+      plan.underlay = underlay
+    } else {
+      warnings.push(
+        'The traced background image was not embedded in the file, so it was left out.',
+      )
     }
-    plan.underlay = underlay
   }
 
   // Orphaned nodes are harmless but they clutter hit-testing; drop them.

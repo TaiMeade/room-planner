@@ -6,6 +6,13 @@ import { defineConfig } from 'vite'
 import vuetify from 'vite-plugin-vuetify'
 
 export default defineConfig({
+  /**
+   * GitHub Pages serves a project site from a subdirectory, so every asset URL
+   * needs that prefix or the deployed page loads a blank screen with 404s in
+   * the console. The workflow passes the repository name; locally, and for a
+   * user site or custom domain, the default root is correct.
+   */
+  base: process.env.PAGES_BASE ?? '/',
   plugins: [
     // TresJS renders `<TresMesh>`, `<primitive>` and friends itself, so the Vue
     // compiler has to be told they are not components to resolve. Without this
