@@ -1,0 +1,183 @@
+/*
+ * Design tokens.
+ *
+ * Two worlds, and they are meant to stay separate: `--ink-*` is the tool chrome
+ * (a drafting table in low light) and `--paper-*` is the drawing surface. The
+ * canvas colours are duplicated in `lib/render.ts` because the export pipeline
+ * has no DOM to read them from — if you change one, change both.
+ */
+
+:root {
+  /* Chrome — the table. */
+  --ink: #1b2327;
+  --ink-raised: #232d33;
+  --ink-sunken: #151c20;
+  --ink-line: #33414a;
+  --chalk: #e8ecec;
+  --chalk-dim: #93a4ae;
+  --chalk-faint: #6c7d87;
+
+  /* Paper — the drawing. */
+  --paper: #f2f3ef;
+  --paper-edge: #d5d9d1;
+  --grid-minor: #e2e5de;
+  --grid-major: #cfd5cc;
+  --graphite: #2b3338;
+  --graphite-line: #171d21;
+  --room-fill: #fafbf8;
+
+  /* Blueprint blue is reserved for measured things. */
+  --blueprint: #2f6e97;
+  --blueprint-bright: #5a9fc9;
+  --blueprint-wash: rgba(90, 159, 201, 0.14);
+  --dimension: #4a6b80;
+
+  --amber: #b8752e;
+  --amber-bright: #d9a05b;
+  --danger: #b8543f;
+
+  --rail: 56px;
+  --inspector: 312px;
+  --topbar: 52px;
+  --statusbar: 30px;
+
+  --radius: 6px;
+  --radius-sm: 4px;
+
+  --font-ui: 'Archivo Variable', 'Archivo', system-ui, -apple-system, sans-serif;
+  /* Every number in this app is monospaced. Dimension strings align in a real
+     drawing, and they should align here too. */
+  --font-mono: 'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#app {
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
+}
+
+body {
+  font-family: var(--font-ui);
+  background: var(--ink);
+  color: var(--chalk);
+  -webkit-font-smoothing: antialiased;
+}
+
+.v-application {
+  font-family: var(--font-ui) !important;
+}
+
+/* --- typographic roles ---------------------------------------------------- */
+
+/* Section headers in the rails: small, wide, quiet. Borrowed from the way a
+   drawing sheet labels its zones. */
+.eyebrow {
+  font-family: var(--font-ui);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--chalk-faint);
+}
+
+.mono {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+}
+
+.numeric,
+.v-field input[inputmode='decimal'],
+.v-field input.mono-input {
+  font-family: var(--font-mono) !important;
+  font-variant-numeric: tabular-nums;
+}
+
+/* --- canvas --------------------------------------------------------------- */
+
+.plan-canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  background: var(--paper);
+  touch-action: none;
+  user-select: none;
+  cursor: default;
+}
+
+.plan-canvas--pan {
+  cursor: grab;
+}
+.plan-canvas--panning {
+  cursor: grabbing;
+}
+.plan-canvas--draw {
+  cursor: crosshair;
+}
+.plan-canvas--move {
+  cursor: move;
+}
+
+.plan-canvas text {
+  user-select: none;
+  pointer-events: none;
+}
+
+/* --- Vuetify adjustments --------------------------------------------------- */
+
+.v-field--variant-outlined .v-field__outline__start,
+.v-field--variant-outlined .v-field__outline__end,
+.v-field--variant-outlined .v-field__outline__notch::before,
+.v-field--variant-outlined .v-field__outline__notch::after {
+  opacity: 0.5;
+}
+
+.v-btn--variant-text:hover > .v-btn__overlay {
+  opacity: 0.08;
+}
+
+.v-slider-track__background {
+  opacity: 0.35;
+}
+
+/* Scrollbars, so the inspector doesn't sprout a bright system bar. */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--ink-line);
+  border-radius: 6px;
+  border: 3px solid transparent;
+  background-clip: content-box;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--chalk-faint);
+  background-clip: content-box;
+}
+
+/* --- quality floor --------------------------------------------------------- */
+
+:focus-visible {
+  outline: 2px solid var(--blueprint-bright);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
