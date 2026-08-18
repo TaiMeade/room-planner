@@ -3,7 +3,7 @@ import { ref, shallowRef } from 'vue'
 import { add, distance, snapPointToGrid, sub } from '@/lib/geometry'
 import type { Point } from '@/lib/geometry'
 import { createRoom, createWall, moveOpening, placeOpening } from '@/lib/edits'
-import { moveNodes, updateFurniture } from '@/lib/commands'
+import { moveFurniture, moveNodes, updateFurniture } from '@/lib/commands'
 import { hitTest, hitTestRect } from '@/lib/hitTest'
 import { useEditorStore } from '@/stores/editor'
 import { usePlanStore } from '@/stores/plan'
@@ -371,12 +371,12 @@ export function useCanvasInteraction(surface: () => SVGSVGElement | null) {
 
       case 'furniture': {
         const delta = snapDelta(sub(world, current.grab), current.origins)
-        for (const [id, origin] of current.origins) {
-          const target = add(origin, delta)
-          planStore.execute(
-            updateFurniture(planStore.plan, id, { x: target.x, y: target.y }, 'move item'),
-          )
-        }
+        const moves = [...current.origins.entries()].map(([id, origin]) => ({
+          id,
+          from: origin,
+          to: add(origin, delta),
+        }))
+        planStore.execute(moveFurniture(moves, moves.length > 1 ? 'move items' : 'move item'))
         return
       }
 

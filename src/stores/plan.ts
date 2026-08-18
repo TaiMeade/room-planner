@@ -142,6 +142,21 @@ export const usePlanStore = defineStore('plan', () => {
     bump()
   }
 
+  /**
+   * Rename the document. Like settings, this sidesteps undo — a name is a label
+   * on the work, not part of it.
+   *
+   * It still has to go through here rather than being assigned from a template.
+   * Autosave watches `revision`, so a rename written straight onto `plan.meta`
+   * changes what is on screen and never reaches the browser copy: the user
+   * renames, refreshes, and the old name is back.
+   */
+  function setName(name: string): void {
+    if (plan.value.meta.name === name) return
+    plan.value.meta.name = name
+    bump()
+  }
+
   /** Swap the whole document in — import, clear, or reload the sample — as one undoable step. */
   function loadPlan(next: Plan, label = 'load plan'): void {
     execute(replacePlan(plan.value, next, label))
@@ -208,6 +223,7 @@ export const usePlanStore = defineStore('plan', () => {
     undo,
     redo,
     updateSettings,
+    setName,
     loadPlan,
     resetTo,
     newBlankPlan,

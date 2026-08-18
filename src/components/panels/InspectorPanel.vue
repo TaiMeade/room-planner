@@ -301,7 +301,7 @@ const itemCount = computed(() => Object.keys(planStore.plan.furniture).length)
           :model-value="planStore.plan.meta.name"
           label="Name"
           class="mt-2"
-          @update:model-value="planStore.plan.meta.name = $event"
+          @update:model-value="planStore.setName(String($event))"
         />
         <div class="stats mt-3">
           <div class="stat">

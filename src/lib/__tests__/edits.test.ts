@@ -106,6 +106,49 @@ describe('createWall', () => {
     ).toBeNull()
   })
 
+  it('splits one wall once when both ends land on it, rather than doubling it', () => {
+    // Both endpoints sit on the body of w1. Resolved against the pre-split
+    // geometry, the far end splits the wall the near end had already replaced,
+    // and the plan ends up with two overlapping copies of it.
+    const plan = twoWallPlan()
+    const result = createWall(plan, geometryOf(plan), { x: 1000, y: 0 }, { x: 3000, y: 0 }, {
+      ...WELD,
+      ...WALL,
+    })!
+    result.command.apply(plan)
+
+    // w1 becomes three segments (0–1000, 1000–3000, 3000–4000), plus the drawn
+    // wall and w2: five walls, with nothing stacked on anything.
+    expect(plan.walls.w1).toBeUndefined()
+    expect(Object.keys(plan.walls)).toHaveLength(5)
+
+    // No two walls may share a pair of endpoints except the drawn one, which
+    // deliberately runs alongside the segment between the split nodes.
+    const spans = Object.values(plan.walls).map((wall) =>
+      [wall.start, wall.end].sort().join('|'),
+    )
+    const duplicated = spans.filter((span, index) => spans.indexOf(span) !== index)
+    expect(duplicated).toHaveLength(1)
+
+    // Every remaining segment is backed by a real node pair.
+    for (const wall of Object.values(plan.walls)) {
+      expect(plan.nodes[wall.start]).toBeDefined()
+      expect(plan.nodes[wall.end]).toBeDefined()
+    }
+  })
+
+  it('undoes a double-ended split back to the original wall', () => {
+    const plan = twoWallPlan()
+    const before = JSON.stringify(plan)
+    const result = createWall(plan, geometryOf(plan), { x: 1000, y: 0 }, { x: 3000, y: 0 }, {
+      ...WELD,
+      ...WALL,
+    })!
+    result.command.apply(plan)
+    result.command.revert(plan)
+    expect(JSON.parse(JSON.stringify(plan))).toEqual(JSON.parse(before))
+  })
+
   it('undoes a split back to the original single wall', () => {
     const plan = twoWallPlan()
     const before = JSON.stringify(plan)

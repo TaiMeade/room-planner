@@ -6,6 +6,7 @@ import {
   addFurniture,
   addWall,
   composite,
+  moveFurniture,
   moveNodes,
   removeFurniture,
   removeOpening,
@@ -284,5 +285,69 @@ describe('cascades', () => {
     command.revert(plan)
     expect(plan.openings.o1?.wall).toBe('w1')
     expect(plan.nodes.a).toEqual({ id: 'a', x: 0, y: 0 })
+  })
+})
+
+describe('moveFurniture', () => {
+  function twoItemPlan(): Plan {
+    const plan = fixture()
+    plan.furniture.f2 = { ...plan.furniture.f1!, id: 'f2', x: 3000, y: 1000 }
+    plan.furnitureOrder = ['f1', 'f2']
+    return plan
+  }
+
+  it('moves every item in one command and undoes them together', () => {
+    const plan = twoItemPlan()
+    const command = moveFurniture([
+      { id: 'f1', from: { x: 1000, y: 1000 }, to: { x: 1500, y: 1200 } },
+      { id: 'f2', from: { x: 3000, y: 1000 }, to: { x: 3500, y: 1200 } },
+    ])
+    command.apply(plan)
+
+    expect(plan.furniture.f1).toMatchObject({ x: 1500, y: 1200 })
+    expect(plan.furniture.f2).toMatchObject({ x: 3500, y: 1200 })
+
+    command.revert(plan)
+    expect(plan.furniture.f1).toMatchObject({ x: 1000, y: 1000 })
+    expect(plan.furniture.f2).toMatchObject({ x: 3000, y: 1000 })
+  })
+
+  /**
+   * A drag of several items used to emit one `updateFurniture` per item per
+   * frame. Those alternate between merge keys, so consecutive commands never
+   * matched and a short drag of two chairs buried the undo stack.
+   */
+  it('keeps one merge key for the whole selection so a drag folds to one step', () => {
+    const plan = twoItemPlan()
+    const ids = [
+      { id: 'f1', from: { x: 1000, y: 1000 }, to: { x: 1100, y: 1000 } },
+      { id: 'f2', from: { x: 3000, y: 1000 }, to: { x: 3100, y: 1000 } },
+    ]
+    const first = moveFurniture(ids)
+    // The same selection in a different order is still the same gesture.
+    const second = moveFurniture([
+      { id: 'f2', from: { x: 3000, y: 1000 }, to: { x: 3200, y: 1000 } },
+      { id: 'f1', from: { x: 1000, y: 1000 }, to: { x: 1200, y: 1000 } },
+    ])
+    expect(first.mergeKey).toBe(second.mergeKey)
+
+    first.apply(plan)
+    second.apply(plan)
+    first.absorb!(second.after!)
+
+    expect(plan.furniture.f1).toMatchObject({ x: 1200 })
+    // Undoing the folded command returns to where the drag began, not midway.
+    first.revert(plan)
+    expect(plan.furniture.f1).toMatchObject({ x: 1000, y: 1000 })
+    expect(plan.furniture.f2).toMatchObject({ x: 3000, y: 1000 })
+  })
+
+  it('does not share a merge key with a different selection', () => {
+    const both = moveFurniture([
+      { id: 'f1', from: { x: 0, y: 0 }, to: { x: 1, y: 0 } },
+      { id: 'f2', from: { x: 0, y: 0 }, to: { x: 1, y: 0 } },
+    ])
+    const one = moveFurniture([{ id: 'f1', from: { x: 0, y: 0 }, to: { x: 1, y: 0 } }])
+    expect(both.mergeKey).not.toBe(one.mergeKey)
   })
 })

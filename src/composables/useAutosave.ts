@@ -72,6 +72,13 @@ export function useAutosave() {
   }
 
   async function forget(): Promise<void> {
+    // Drop any save already in flight first. An edit within the debounce window
+    // of pressing "clear" would otherwise land just after the delete and write
+    // the copy straight back, having told the user it was gone.
+    if (timer !== null) {
+      window.clearTimeout(timer)
+      timer = null
+    }
     await clearAutosave()
     lastSavedAt.value = null
     restoredFrom.value = null

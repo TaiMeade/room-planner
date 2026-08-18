@@ -16,7 +16,7 @@ import { distance, projectOnSegment, scale, sub } from '@/lib/geometry'
 import type { Point } from '@/lib/geometry'
 import { findNodeAt } from '@/lib/hitTest'
 import { furnitureId, nodeId, openingId, wallId } from '@/lib/id'
-import { clampOpening, distanceAlongWall } from '@/lib/wallGeometry'
+import { clampOpening, computePlanGeometry, distanceAlongWall } from '@/lib/wallGeometry'
 import type { PlanGeometry } from '@/lib/wallGeometry'
 import type { Id, OpeningKind, Plan, PlanNode, Selection, Wall } from '@/types/plan'
 
@@ -30,6 +30,16 @@ import type { Id, OpeningKind, Plan, PlanNode, Selection, Wall } from '@/types/p
  * doors with it. All of it composes down to commands, so all of it undoes as
  * one step.
  */
+
+/**
+ * A throwaway copy, used to look at the plan as it will be *after* an endpoint
+ * has been resolved. A JSON round trip for the same reason the command layer
+ * uses one: the live plan is a Vue proxy, and the document is JSON by
+ * definition.
+ */
+function clonePlan(plan: Plan): Plan {
+  return JSON.parse(JSON.stringify(plan)) as Plan
+}
 
 /** How close (world mm) a new endpoint has to be before it snaps onto existing structure. */
 export interface WeldOptions {
@@ -187,7 +197,24 @@ export function createWall(
   if (distance(from, to) < Math.max(options.nodeTolerance, 1)) return null
 
   const start = resolveEndpoint(plan, geometry, from, options, options.fromNode)
-  const end = resolveEndpoint(plan, geometry, to, options, options.toNode)
+
+  // The second endpoint has to be resolved against the plan the first one
+  // leaves behind. Both ends of a wall drawn across a single existing wall land
+  // on it, and against the original geometry the far end would split the very
+  // wall the near end had already replaced — emitting a second pair of halves
+  // and leaving the wall doubled, stacked on itself.
+  //
+  // Only when the start actually restructured something: the common case
+  // resolves to an existing node or a brand-new one and costs nothing.
+  let endPlan = plan
+  let endGeometry = geometry
+  if (start.commands.length > 0) {
+    endPlan = clonePlan(plan)
+    for (const command of start.commands) command.apply(endPlan)
+    endGeometry = computePlanGeometry(endPlan)
+  }
+
+  const end = resolveEndpoint(endPlan, endGeometry, to, options, options.toNode)
 
   if (start.nodeId === end.nodeId) return null
 

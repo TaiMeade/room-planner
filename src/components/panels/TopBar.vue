@@ -76,8 +76,9 @@ const units = computed({
     </div>
 
     <input
-      v-model="planStore.plan.meta.name"
+      :value="planStore.plan.meta.name"
       class="topbar__name"
+      @input="planStore.setName(($event.target as HTMLInputElement).value)"
       aria-label="Plan name"
       placeholder="Untitled plan"
       spellcheck="false"

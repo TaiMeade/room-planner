@@ -313,6 +313,57 @@ export function removeFurniture(plan: Plan, itemId: Id): Command | null {
   }
 }
 
+/**
+ * Move any number of items at once, as one command.
+ *
+ * The per-item `updateFurniture` merges only against itself, so a drag of two
+ * selected items alternates between two merge keys and nothing ever folds —
+ * a ten-frame drag of two chairs left twenty entries on the undo stack. Moving
+ * them together gives the whole gesture a single key, exactly as `moveNodes`
+ * does for corners.
+ */
+export function moveFurniture(
+  moves: { id: Id; from: Point; to: Point }[],
+  label = 'move item',
+): Command {
+  const record = moves.map((move) => ({
+    id: move.id,
+    from: { ...move.from },
+    to: { ...move.to },
+  }))
+  return {
+    label,
+    mergeKey: `moveFurniture:${record.map((move) => move.id).sort().join(',')}`,
+    get after() {
+      return Object.fromEntries(record.map((move) => [move.id, move.to]))
+    },
+    absorb(next) {
+      for (const [id, position] of Object.entries(next)) {
+        const existing = record.find((move) => move.id === id)
+        if (existing) existing.to = { ...(position as Point) }
+      }
+    },
+    apply(plan) {
+      for (const move of record) {
+        const item = plan.furniture[move.id]
+        if (item) {
+          item.x = move.to.x
+          item.y = move.to.y
+        }
+      }
+    },
+    revert(plan) {
+      for (const move of record) {
+        const item = plan.furniture[move.id]
+        if (item) {
+          item.x = move.from.x
+          item.y = move.from.y
+        }
+      }
+    },
+  }
+}
+
 export function updateFurniture(
   plan: Plan,
   itemId: Id,
