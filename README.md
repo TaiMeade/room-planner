@@ -1,5 +1,8 @@
 # Room Planner
 
+## Discosure
+This web app was created with AI (Opus 5) as a side project. I have NOT reviewed the code as of today (08/18/2026).
+
 Draw a room to scale in the browser, put furniture in it, and take the file with you.
 
 No account, no upload, no paywall on export. A plan lives in your browser and leaves as a
